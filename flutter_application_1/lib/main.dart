@@ -11,9 +11,10 @@ import 'add_product.dart';
 import 'auth.dart';
 import 'detail_screen.dart';
 import 'edit_screen.dart';
-
-void main() {
-  
+import 'firebase_options.dart';
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
      MyApp(),
   );

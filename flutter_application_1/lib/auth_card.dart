@@ -1,8 +1,12 @@
 
 
+import 'dart:io';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/http_exception.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'auth.dart';
@@ -140,103 +144,151 @@ class _AuthCardState extends State<AuthCard> with SingleTickerProviderStateMixin
       ),
       );
   }
+  //::::::::::::::: upload Image:::::::::::::
+  var img;
+Future selectImage(ImageSource source) async {
+        try {
+          ImagePicker imagePicker = ImagePicker();
+          XFile? pickedFile = await imagePicker.pickImage(source: source,   imageQuality: 80);
+          File imageFile = File(pickedFile!.path);
+          if(imageFile == null ) return 'there is no image';
 
+          String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    
+          final storageRef = FirebaseStorage.instance.ref().child("UsersProfilePhoto/");
+    
+          await storageRef.putFile(imageFile);
+
+          var url=storageRef.getDownloadURL();
+
+          setState(() {
+            
+          img=url;
+          });
+          
+        } on FirebaseException catch (e) {
+          print(e.message);
+        }
+        
+      }
   @override
   Widget build(BuildContext context) {
     final deviceSize=MediaQuery.of(context).size;
     return SafeArea(
-      child: Card(
-            elevation: 12,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve:Curves.easeIn,
-              height: authMode==AuthMode.signUp?320:260,
-              constraints: BoxConstraints(minHeight: authMode==AuthMode.signUp?320:260),
-              width: deviceSize.width *0.75,
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key:_formKey ,
-                child:SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        decoration: const InputDecoration(labelText: 'E-mail'),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (val){
-                          if(val!.isEmpty || !val.contains('@')){
-                            return 'Invalid Email';
-                          }return null;
-                        },
-                        onSaved:(val){
-                          authData['email']=val!;
-                        } 
-                      ),
-                    
-                      TextFormField(
-                        decoration: const InputDecoration(labelText: 'Password'),
-                        controller: passwordConroller,
-                        obscureText: true,
-                        validator: (val){
-                          if(val!.isEmpty || val.length<=5){
-                            return 'Password is Too Short';
-                          }return null;
-                        },
-                        onSaved:(val){
-                          authData['password']=val!;
-                        } 
-                      ),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 100),
-                        constraints: BoxConstraints(
-                          minHeight: authMode==AuthMode.signUp?60:0,
-                          maxHeight: authMode==AuthMode.signUp?120:0
-                          ),
-                          child:SlideTransition(
-                            position: sliderAnimation!,
-                            child:FadeTransition(
-                              opacity: opacityAnimation!,
-                              child: TextFormField(
-                                enabled: authMode==AuthMode.signUp,
-                                  decoration: const InputDecoration(labelText: 'Confirm Password'),
-                                  obscureText: true,
-                                  validator: authMode==AuthMode.signUp? (val){
-                                  if(val!.isEmpty || passwordConroller.text!=val){
-                                     return 'password do not matches';
-                                  }return null;
-                                  }:null
-                              ),
-                            ), 
-                            ),
-                        ),
-                      const SizedBox(height: 20),
-                      if(isLoading) const CircularProgressIndicator(),
-                      ElevatedButton(
-                        onPressed: submit,
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(Colors.lightBlueAccent),
-                          shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                          padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 30,vertical: 8)),
-                          // textStyle: 
-                        ),
-                        child:Text(authMode==AuthMode.login?'LOGIN':'SIGN UP'),
-                        ),
-                        TextButton(
-                          style: ButtonStyle(
-                          foregroundColor: MaterialStateProperty.all(Colors.black) ,
-                          padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 30,vertical: 8)),
-                          // textStyle: 
-                        ),
-                          onPressed: swicthAuthMode,
-                          child:Text(authMode==AuthMode.signUp?'LOGIN INSTEAD':'SIGN UP' ' INSTEAD'),
-                          ),
-                    ],
-                  ),
-                ) ,
+      child: Column(
+        children: [
+          CircleAvatar(
+                radius: 40,
+                backgroundImage: NetworkImage(img),
                 ),
-              ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+               chooseMethod('from Camera',selectImage(ImageSource.camera)),
+               chooseMethod('from Gallery',selectImage(ImageSource.gallery)),
+            ],
+          ),
+          Card(
+                elevation: 12,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve:Curves.easeIn,
+                  height: authMode==AuthMode.signUp?320:260,
+                  constraints: BoxConstraints(minHeight: authMode==AuthMode.signUp?320:260),
+                  width: deviceSize.width *0.75,
+                  padding: const EdgeInsets.all(16),
+                  child: Form(
+                    key:_formKey ,
+                    child:SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            decoration: const InputDecoration(labelText: 'E-mail'),
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (val){
+                              if(val!.isEmpty || !val.contains('@')){
+                                return 'Invalid Email';
+                              }return null;
+                            },
+                            onSaved:(val){
+                              authData['email']=val!;
+                            } 
+                          ),
+                        
+                          TextFormField(
+                            decoration: const InputDecoration(labelText: 'Password'),
+                            controller: passwordConroller,
+                            obscureText: true,
+                            validator: (val){
+                              if(val!.isEmpty || val.length<=5){
+                                return 'Password is Too Short';
+                              }return null;
+                            },
+                            onSaved:(val){
+                              authData['password']=val!;
+                            } 
+                          ),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            constraints: BoxConstraints(
+                              minHeight: authMode==AuthMode.signUp?60:0,
+                              maxHeight: authMode==AuthMode.signUp?120:0
+                              ),
+                              child:SlideTransition(
+                                position: sliderAnimation!,
+                                child:FadeTransition(
+                                  opacity: opacityAnimation!,
+                                  child: TextFormField(
+                                    enabled: authMode==AuthMode.signUp,
+                                      decoration: const InputDecoration(labelText: 'Confirm Password'),
+                                      obscureText: true,
+                                      validator: authMode==AuthMode.signUp? (val){
+                                      if(val!.isEmpty || passwordConroller.text!=val){
+                                         return 'password do not matches';
+                                      }return null;
+                                      }:null
+                                  ),
+                                ), 
+                                ),
+                            ),
+                          const SizedBox(height: 20),
+                          if(isLoading) const CircularProgressIndicator(),
+                          ElevatedButton(
+                            onPressed: submit,
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(Colors.lightBlueAccent),
+                              shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                              padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 30,vertical: 8)),
+                              // textStyle: 
+                            ),
+                            child:Text(authMode==AuthMode.login?'LOGIN':'SIGN UP'),
+                            ),
+                            TextButton(
+                              style: ButtonStyle(
+                              foregroundColor: MaterialStateProperty.all(Colors.black) ,
+                              padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 30,vertical: 8)),
+                              // textStyle: 
+                            ),
+                              onPressed: swicthAuthMode,
+                              child:Text(authMode==AuthMode.signUp?'LOGIN INSTEAD':'SIGN UP' ' INSTEAD'),
+                              ),
+                        ],
+                      ),
+                    ) ,
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
   }
+  InkWell chooseMethod(text,Future<dynamic> onTap) {
+    return InkWell(
+              onTap:()=>onTap,
+              child: Text(text,style:const TextStyle(fontSize: 20,fontWeight: FontWeight.bold),
+              ),
+              );
+     }
   
 }
