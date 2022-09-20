@@ -1,14 +1,11 @@
 
-
 import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/http_exception.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-
 import 'auth.dart';
 
 
@@ -23,6 +20,8 @@ enum AuthMode{login,signUp}
 class _AuthCardState extends State<AuthCard> with SingleTickerProviderStateMixin {
 
   final GlobalKey<FormState> _formKey=GlobalKey();
+  
+  String pickedImage='';
 
 
   AuthMode authMode=AuthMode.login;
@@ -56,6 +55,18 @@ class _AuthCardState extends State<AuthCard> with SingleTickerProviderStateMixin
   Future<void> submit()async{
  if(!_formKey.currentState!.validate()){
    return;
+ }
+ if(pickedImage=='')
+ {
+    Fluttertoast.showToast(
+        msg: 'Please Image filled is Required',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0
+    );
  }
  FocusScope.of(context).unfocus();
  _formKey.currentState!.save();
@@ -145,25 +156,27 @@ class _AuthCardState extends State<AuthCard> with SingleTickerProviderStateMixin
       );
   }
   //::::::::::::::: upload Image:::::::::::::
-  var img;
-Future selectImage(ImageSource source) async {
+  
+ selectImage(ImageSource source) async {
         try {
           ImagePicker imagePicker = ImagePicker();
+          
           XFile? pickedFile = await imagePicker.pickImage(source: source,   imageQuality: 80);
-          File imageFile = File(pickedFile!.path);
-          if(imageFile == null ) return 'there is no image';
+
+          File? imageFile = File(pickedFile!.path);
+
+          if(imageFile==null) return 'there is no image';
 
           String fileName = DateTime.now().millisecondsSinceEpoch.toString();
     
-          final storageRef = FirebaseStorage.instance.ref().child("UsersProfilePhoto/");
+          final storageRef = FirebaseStorage.instance.ref().child("Picture/").child("pic4");
     
           await storageRef.putFile(imageFile);
 
-          var url=storageRef.getDownloadURL();
+          var url=await storageRef.getDownloadURL();
 
           setState(() {
-            
-          img=url;
+            pickedImage = url;
           });
           
         } on FirebaseException catch (e) {
@@ -177,17 +190,20 @@ Future selectImage(ImageSource source) async {
     return SafeArea(
       child: Column(
         children: [
-          CircleAvatar(
+          // show the Circle Just In Sin Up Mode
+    if(authMode==AuthMode.signUp) CircleAvatar(
                 radius: 40,
-                backgroundImage: NetworkImage(img),
+                backgroundImage:NetworkImage(pickedImage),
                 ),
-          Row(
+          // show the Circle Just In Sin Up Mode
+    if(authMode==AuthMode.signUp) Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-               chooseMethod('from Camera',selectImage(ImageSource.camera)),
-               chooseMethod('from Gallery',selectImage(ImageSource.gallery)),
+               chooseMethod('from Camera',()=>selectImage(ImageSource.camera)),
+               chooseMethod('from Gallery',()=>selectImage(ImageSource.gallery)),
             ],
           ),
+     
           Card(
                 elevation: 12,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -283,9 +299,9 @@ Future selectImage(ImageSource source) async {
       ),
     );
   }
-  InkWell chooseMethod(text,Future<dynamic> onTap) {
-    return InkWell(
-              onTap:()=>onTap,
+  GestureDetector chooseMethod(text,Future<dynamic> Function() onTap) {
+    return GestureDetector(
+              onTap:onTap,
               child: Text(text,style:const TextStyle(fontSize: 20,fontWeight: FontWeight.bold),
               ),
               );
